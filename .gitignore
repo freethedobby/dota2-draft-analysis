@@ -5,3 +5,6 @@ __pycache__/
 .venv/
 .env
 .claude/
+data/recent_drafts.json
+# Real secrets live here locally; .example file is committed instead
+.streamlit/secrets.toml

@@ -68,6 +68,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", type=int, default=15000, help="stop when CSV has this many rows")
     ap.add_argument("--sleep", type=float, default=1.1, help="seconds between API calls (rate limit ~60/min)")
+    ap.add_argument("--refresh", action="store_true",
+                    help="Start from the newest match instead of resuming from the oldest "
+                         "seen ID. Use this to top up with matches played since the last fetch. "
+                         "Stops automatically after several consecutive pages of duplicates.")
     args = ap.parse_args()
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -80,10 +84,14 @@ def main():
     if write_header:
         w.writeheader()
 
-    less_than = min_id  # continue paginating backwards from oldest seen
+    # Refresh mode starts from current matches and paginates backwards, dedupes via
+    # `seen`, and stops after several consecutive empty pages (= caught up).
+    less_than = None if args.refresh else min_id
     total = len(seen)
     pages = 0
     kept_this_run = 0
+    empty_streak = 0
+    MAX_EMPTY_STREAK = 4
     try:
         while total < args.target:
             try:
@@ -99,9 +107,11 @@ def main():
 
             page_min = min(m["match_id"] for m in page)
             page_kept = 0
+            all_dupes = True
             for m in page:
                 if m["match_id"] in seen:
                     continue
+                all_dupes = False
                 seen.add(m["match_id"])
                 if not keep(m):
                     continue
@@ -124,6 +134,13 @@ def main():
             oldest_in_page = min(m["start_time"] for m in page)
             print(f"page {pages}: {len(page)} fetched, {page_kept} kept, "
                   f"oldest_ts={oldest_in_page}, total={total}")
+
+            # Refresh mode: stop once we've caught up (consecutive duplicate pages)
+            if args.refresh:
+                empty_streak = empty_streak + 1 if all_dupes else 0
+                if empty_streak >= MAX_EMPTY_STREAK:
+                    print(f"{MAX_EMPTY_STREAK} consecutive all-duplicate pages — caught up, stopping")
+                    break
 
             # Stop if we've paginated back past the patch start
             if oldest_in_page < PATCH_741_START:

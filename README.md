@@ -11,6 +11,18 @@ streamlit run src/dashboard.py
 
 Then open <http://localhost:8501>. The bundled `data/matches.csv` (~2 MB) and `data/model.pkl` let the dashboard run out of the box.
 
+## Deploy publicly (mobile-accessible)
+
+The fastest path is **Streamlit Community Cloud** — free, designed for Streamlit, gives you a public `*.streamlit.app` URL that works on mobile:
+
+1. Push this repo to your own GitHub if it isn't already.
+2. Sign in at <https://share.streamlit.io> with GitHub.
+3. **New app** → pick this repo → branch `main` → main file `src/dashboard.py`.
+4. (Optional) **Settings → Secrets** → paste the contents of `.streamlit/secrets.toml.example` and fill in your real PandaScore key.
+5. Deploy. The URL is shareable and mobile-friendly.
+
+Note: Vercel is *not* a good target — it's built for stateless serverless functions, and Streamlit needs a long-running WebSocket connection. Hugging Face Spaces is a fine alternative if you prefer it over Streamlit Cloud.
+
 ## What's in here
 
 | File | Purpose |
